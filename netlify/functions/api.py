@@ -1,8 +1,9 @@
 import json
 import requests
 import re
+from bs4 import BeautifulSoup
 import time
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 def is_xhamster(url):
     domain = urlparse(url).netloc.lower()
@@ -19,7 +20,7 @@ def extract_video_links(url):
         return extract_other(url)
 
 # =====================================
-# 🔥 THUMBNAIL EXTRACTOR
+# 🔥 THUMBNAIL EXTRACTOR (COMMON)
 # =====================================
 def extract_thumbnail(html):
     thumb = None
@@ -36,7 +37,7 @@ def extract_thumbnail(html):
     return thumb
 
 # =====================================
-# 🔥 XHAMSTER
+# 🔥 XHAMSTER (SAME LOGIC)
 # =====================================
 def extract_xhamster(url):
 
@@ -62,6 +63,7 @@ def extract_xhamster(url):
         thumb = extract_thumbnail(html)
 
         links = set()
+
         links.update(re.findall(r'https?://[^\s"\']+\.m3u8[^\s"\']*', html))
 
         json_links = re.findall(r'"url":"(https:[^"]+)"', html)
@@ -123,7 +125,7 @@ def extract_xhamster(url):
         return {"error": str(e)}
 
 # =====================================
-# 🔥 OTHER DOMAIN
+# 🔥 OTHER DOMAIN (SAME LOGIC)
 # =====================================
 def extract_other(url):
 
@@ -164,6 +166,7 @@ def extract_other(url):
             }
 
         links = set()
+
         links.update(re.findall(r'https?://[^\s"\']+\.m3u8[^\s"\']*', html))
 
         json_links = re.findall(r'"url":"(https:[^"]+)"', html)
@@ -203,7 +206,7 @@ def extract_other(url):
                         "thumbnail": thumb,
                         "video": test_link,
                         "type": "m3u8"
-                        }
+                    }
 
         return {
             "thumbnail": thumb,
@@ -218,12 +221,9 @@ def extract_other(url):
 # 🌐 NETLIFY HANDLER
 # =====================================
 def handler(event, context):
-    params = parse_qs(event.get("queryStringParameters") or {})
-    url = None
 
-    # Netlify sometimes sends directly dict
-    if isinstance(event.get("queryStringParameters"), dict):
-        url = event["queryStringParameters"].get("url")
+    params = event.get("queryStringParameters") or {}
+    url = params.get("url")
 
     if not url:
         return {
